@@ -1,7 +1,7 @@
 ################################################################################
 # Set up environment variables, OS packages, and scripts that are common to the
 # build and distribution layers in this Dockerfile
-FROM alpine:3.9 AS base
+FROM alpine:3.12 AS base
 
 # Must be one of 'gmp' or 'simple'; used to build GHC with support for either
 # 'integer-gmp' (with 'libgmp') or 'integer-simple'
@@ -10,8 +10,8 @@ FROM alpine:3.9 AS base
 ARG GHC_BUILD_TYPE
 
 # Must be a valid GHC version number
-# tested with 8.4.4, 8.6.4, 8.6.5, 8.8.3
-ARG GHC_VERSION=8.8.3
+# tested with 8.4.4, 8.6.4, 8.6.5, 8.8.3, 8.10.1
+ARG GHC_VERSION=8.10.3
 
 # Add ghcup's bin directory to the PATH so that the versions of GHC it builds
 # are available in the build layers
@@ -52,8 +52,8 @@ FROM base AS build-ghc
 
 # Carry build args through to this stage
 ARG GHC_BUILD_TYPE=gmp
-ARG GHC_VERSION=8.8.3
-ARG GHC_BOOTSTRAP_VERSION=8.4.3
+ARG GHC_VERSION=8.10.1
+ARG GHC_BOOTSTRAP_VERSION=8.8.3
 
 RUN echo "Install OS packages necessary to build GHC" &&\
     apk add --no-cache \
@@ -66,7 +66,7 @@ RUN echo "Install OS packages necessary to build GHC" &&\
         ghc=~${GHC_BOOTSTRAP_VERSION} \
         linux-headers \
         libffi-dev \
-        llvm5 \
+        llvm10 \
         musl-dev \
         ncurses-dev \
         perl \
@@ -122,7 +122,7 @@ FROM base
 
 # Carry build args through to this stage
 ARG GHC_BUILD_TYPE=gmp
-ARG GHC_VERSION=8.8.3
+ARG GHC_VERSION=8.10.1
 
 COPY --from=build-ghc /.ghcup /.ghcup
 COPY --from=build-tooling /usr/bin/stack /usr/bin/stack

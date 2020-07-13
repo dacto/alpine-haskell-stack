@@ -11,14 +11,14 @@ main_exe = demo
 # Use GHC options informed by this blog post:
 # https://rybczak.net/2016/03/26/how-to-reduce-compilation-times-of-haskell-projects/
 ghc_opts   = -j +RTS -A128m -RTS
-stack_yaml = STACK_YAML="stack.yaml"
+stack_yaml = STACK_YAML="$(ALPINE_HASKELL_ROOT_DIR)/stack.yaml"
 stack      = $(stack_yaml) stack
 
 # Stack commands that will be executed in the Docker container
 stack_docker = $(stack) --docker
 
 # GHC version to build
-TARGET_GHC_VERSION ?= 8.6.5
+TARGET_GHC_VERSION ?= 8.8.3
 
 ################################################################################
 # Standard build (runs in the Docker container)

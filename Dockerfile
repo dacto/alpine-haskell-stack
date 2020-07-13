@@ -9,10 +9,9 @@ FROM alpine:3.9 AS base
 # Default to building with 'integer-gmp' and 'libgmp' support
 ARG GHC_BUILD_TYPE
 
-# Must be a valid GHC version number, only tested with 8.4.4, 8.6.4, and 8.6.5
-#
-# Default to GHC version 8.6.5 (latest at the time of writing)
-ARG GHC_VERSION=8.6.5
+# Must be a valid GHC version number
+# tested with 8.4.4, 8.6.4, 8.6.5, 8.8.3
+ARG GHC_VERSION=8.8.3
 
 # Add ghcup's bin directory to the PATH so that the versions of GHC it builds
 # are available in the build layers
@@ -20,8 +19,8 @@ ENV GHCUP_INSTALL_BASE_PREFIX=/
 ENV PATH=/.ghcup/bin:$PATH
 
 # Use the latest version of ghcup (at the time of writing)
-ENV GHCUP_VERSION=0.0.7
-ENV GHCUP_SHA256="b4b200d896eb45b56c89d0cfadfcf544a24759a6ffac029982821cc96b2faedb  ghcup"
+ENV GHCUP_VERSION=0.1.6
+ENV GHCUP_SHA256="bdbec0cdf4c8511c4082dd83993d15034c0fbcb5722ecf418c1cee40667da8af  ghcup"
 
 # Install the basic required dependencies to run 'ghcup' and 'stack'
 RUN apk upgrade --no-cache &&\
@@ -38,8 +37,8 @@ RUN apk upgrade --no-cache &&\
 
 # Download, verify, and install ghcup
 RUN echo "Downloading and installing ghcup" &&\
+    wget -O /tmp/ghcup "https://downloads.haskell.org/ghcup/${GHCUP_VERSION}/x86_64-linux-ghcup-${GHCUP_VERSION}" &&\
     cd /tmp &&\
-    wget -P /tmp/ "https://gitlab.haskell.org/haskell/ghcup/raw/${GHCUP_VERSION}/ghcup" &&\
     if ! echo -n "${GHCUP_SHA256}" | sha256sum -c -; then \
         echo "ghcup-${GHCUP_VERSION} checksum failed" >&2 &&\
         exit 1 ;\
@@ -53,7 +52,8 @@ FROM base AS build-ghc
 
 # Carry build args through to this stage
 ARG GHC_BUILD_TYPE=gmp
-ARG GHC_VERSION=8.6.5
+ARG GHC_VERSION=8.8.3
+ARG GHC_BOOTSTRAP_VERSION=8.4.3
 
 RUN echo "Install OS packages necessary to build GHC" &&\
     apk add --no-cache \
@@ -63,7 +63,7 @@ RUN echo "Install OS packages necessary to build GHC" &&\
         build-base \
         coreutils \
         cpio \
-        ghc \
+        ghc=~${GHC_BOOTSTRAP_VERSION} \
         linux-headers \
         libffi-dev \
         llvm5 \
@@ -90,23 +90,23 @@ fi
 RUN echo "Compiling and installing GHC" &&\
     LD=ld.gold \
     SPHINXBUILD=/usr/bin/sphinx-build-3 \
-      ghcup -v compile -j $(nproc) -c /tmp/build.mk ${GHC_VERSION} ghc-8.4.3 &&\
+      ghcup -v compile ghc -j $(nproc) -c /tmp/build.mk -v ${GHC_VERSION} -b ${GHC_BOOTSTRAP_VERSION} &&\
     rm /tmp/build.mk &&\
     echo "Uninstalling GHC bootstrapping compiler" &&\
     apk del ghc &&\
-    ghcup set ${GHC_VERSION}
+    ghcup set ghc ${GHC_VERSION}
 
 ################################################################################
 # Intermediate layer that assembles 'stack' tooling
 FROM base AS build-tooling
 
-ENV STACK_VERSION=2.1.3
-ENV STACK_SHA256="4e937a6ad7b5e352c5bd03aef29a753e9c4ca7e8ccc22deb5cd54019a8cf130c  stack-${STACK_VERSION}-linux-x86_64-static.tar.gz"
+ENV STACK_VERSION=2.3.1
+ENV STACK_SHA256="4bae8830b2614dddf3638a6d1a7bbbc3a5a833d05b2128eae37467841ac30e47  stack-${STACK_VERSION}-linux-x86_64-static.tar.gz"
 
 # Download, verify, and install stack
 RUN echo "Downloading and installing stack" &&\
-    cd /tmp &&\
     wget -P /tmp/ "https://github.com/commercialhaskell/stack/releases/download/v${STACK_VERSION}/stack-${STACK_VERSION}-linux-x86_64-static.tar.gz" &&\
+    cd /tmp &&\
     if ! echo -n "${STACK_SHA256}" | sha256sum -c -; then \
         echo "stack-${STACK_VERSION} checksum failed" >&2 &&\
         exit 1 ;\
@@ -122,7 +122,7 @@ FROM base
 
 # Carry build args through to this stage
 ARG GHC_BUILD_TYPE=gmp
-ARG GHC_VERSION=8.6.5
+ARG GHC_VERSION=8.8.3
 
 COPY --from=build-ghc /.ghcup /.ghcup
 COPY --from=build-tooling /usr/bin/stack /usr/bin/stack
@@ -130,5 +130,5 @@ COPY --from=build-tooling /usr/bin/stack /usr/bin/stack
 # NOTE: 'stack --docker' needs bash + usermod/groupmod (from shadow)
 RUN apk add --no-cache bash shadow openssh-client tar
 
-RUN ghcup set ${GHC_VERSION} &&\
+RUN ghcup set ghc ${GHC_VERSION} &&\
     stack config set system-ghc --global true

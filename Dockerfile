@@ -1,7 +1,7 @@
 ################################################################################
 # Set up environment variables, OS packages, and scripts that are common to the
 # build and distribution layers in this Dockerfile
-FROM alpine:3.9 AS base
+FROM alpine:3.11 AS base
 
 # Must be one of 'gmp' or 'simple'; used to build GHC with support for either
 # 'integer-gmp' (with 'libgmp') or 'integer-simple'
@@ -53,7 +53,7 @@ FROM base AS build-ghc
 # Carry build args through to this stage
 ARG GHC_BUILD_TYPE=gmp
 ARG GHC_VERSION=8.8.3
-ARG GHC_BOOTSTRAP_VERSION=8.4.3
+ARG GHC_BOOTSTRAP_VERSION=8.6.5
 
 RUN echo "Install OS packages necessary to build GHC" &&\
     apk add --no-cache \
@@ -66,7 +66,7 @@ RUN echo "Install OS packages necessary to build GHC" &&\
         ghc=~${GHC_BOOTSTRAP_VERSION} \
         linux-headers \
         libffi-dev \
-        llvm5 \
+        llvm9 \
         musl-dev \
         ncurses-dev \
         perl \

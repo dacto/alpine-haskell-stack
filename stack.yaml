@@ -1,8 +1,8 @@
-resolver: nightly-2020-07-13
+resolver: lts-17.13
 packages:
   - .
 
 docker:
   enable: false
-  repo: "alpine-haskell-gmp:8.10.1"
+  repo: "alpine-haskell-gmp:8.10.4"
   stack-exe: image
